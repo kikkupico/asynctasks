@@ -78,7 +78,7 @@ class ExecutionPlan(object):
         return index in self.started_list
 
     def are_parents_complete(self, index):
-        for parent in self.get_parents(index):
+        for parent in self.get_parents_lazy(index):
             if not self.is_task_complete(parent):
                 return False
         return True
@@ -103,8 +103,9 @@ class ExecutionPlan(object):
         else:
             raise ValueError("Task cannot be completed before starting")
 
-    def get_parents(self, i):
-        return self.plan_as_dict_array[i]['dependencies']
+    def get_parents_lazy(self, i):
+        for p in self.plan_as_dict_array[i]['dependencies']:
+            yield p
 
     def get_dependants(self, i):
         for x in range(0, len(self.plan_as_dict_array)):
@@ -170,4 +171,12 @@ class ExecutionPlan(object):
             return gantt_str
 
     def __str__(self):
-        return "\n".join([str(task) for task in self.plan_as_dict_array])
+        def get_number_of_dependents_lazy():
+            for task in self.plan_as_dict_array:
+                yield len(task['dependencies'])
+
+        for l in get_number_of_dependents_lazy():
+            if l > 1:
+                return "\n".join([str(task) for task in self.plan_as_dict_array])  # return tabular form
+
+        return self.as_tree_string()  # return tree string form
