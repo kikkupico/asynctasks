@@ -8,9 +8,9 @@ from asynctasks.executionplan import ExecutionPlan
 
 class TestExecutionPlan(unittest.TestCase):
     def setUp(self):
-        self.tasks_dict_array = [{"dependency": None, "name": "task0"}, {"dependency": "task0", "name": "task1"},
-                                 {"dependency": "task1", "name": "task2"}, {"dependency": "task0", "name": "task3"},
-                                 {"dependency": None, "name": "task4"}]
+        self.tasks_dict_array = [{"dependencies": [], "name": "task0"}, {"dependencies": [0], "name": "task1"},
+                                 {"dependencies": [1], "name": "task2"}, {"dependencies": [0], "name": "task3"},
+                                 {"dependencies": [], "name": "task4"}]
 
     @unittest.skip("skipping for now")
     def test___str__(self):
@@ -77,9 +77,9 @@ class TestExecutionPlan(unittest.TestCase):
         simple_plan_string = "task0\n\ttask1\ntask2"
         print(simple_plan_string)
         e = ExecutionPlan().from_tree_string(simple_plan_string)
-        print(e.plan_as_dict_array)
-        print(e)
-        self.assertEqual(simple_plan_string, str(e).replace(" Ready ", "")[:-1])  # str returns string with trailing \n
+        #print(e.plan_as_dict_array)
+        print(e.as_tree_string())
+        self.assertEqual(simple_plan_string, e.as_tree_string().replace(" Ready ", "")[:-1])  # str returns string with trailing \n
 
     def test_as_json(self):
         e = ExecutionPlan().from_dict_array(self.tasks_dict_array)

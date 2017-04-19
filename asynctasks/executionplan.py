@@ -29,15 +29,19 @@ class ExecutionPlan(object):
                 prev_indent_level = lines[i-1].count("\t")
 
             if indent_level == prev_indent_level + 1:
-                parents_stack.append(extract_name(lines[i - 1]))
+                parents_stack.append(i - 1)
             elif indent_level == prev_indent_level - 1:
                 parents_stack.pop()
             elif indent_level > prev_indent_level + 1 or indent_level < prev_indent_level - 1:
                 raise ValueError("Invalid indentation for line {}".format(lines[i]))
 
-            return {"name": extract_name(lines[i]), "dependency": parents_stack[-1]}  # dependency will be the last parent
+            dependencies = []
+            if len(parents_stack) > 0:
+                dependencies = [parents_stack[-1]]
 
-        parents_stack = [None]
+            return {"name": extract_name(lines[i]), "dependencies": dependencies}  # dependency will be the last parent
+
+        parents_stack = []
         lines = []
         unclean_lines = tree_string.split('\n')
 
@@ -67,14 +71,17 @@ class ExecutionPlan(object):
 
         if self.plan_as_dict_array.index(task) in self.completed_tasks():
             return False
-        if task['dependency'] is None:
-            is_dependency_complete = True
-        else:
-            is_dependency_complete = self.is_task_complete(index=[i for i in range(0, len(self.plan_as_dict_array)) if self.plan_as_dict_array[i]['name'] == task['dependency']][0])
-        return is_dependency_complete and not self.is_task_complete(index=index) and not self.is_task_started(index=index)
+
+        return self.are_parents_complete(index) and not self.is_task_complete(index=index) and not self.is_task_started(index=index)
 
     def is_task_started(self, index=None):
         return index in self.started_list
+
+    def are_parents_complete(self, index):
+        for parent in self.get_parents(index):
+            if not self.is_task_complete(parent):
+                return False
+        return True
 
     def ready_tasks(self):
         return [i for i in range(0, len(self.plan_as_dict_array)) if self.is_ready(index=i)]
@@ -96,11 +103,15 @@ class ExecutionPlan(object):
         else:
             raise ValueError("Task cannot be completed before starting")
 
-    def get_dependants(self, i):
-        return [self.plan_as_dict_array.index(j) for j in self.plan_as_dict_array if
-                j['dependency'] == self.plan_as_dict_array[i]['name']]
+    def get_parents(self, i):
+        return self.plan_as_dict_array[i]['dependencies']
 
-    def __str__(self):
+    def get_dependants(self, i):
+        for x in range(0, len(self.plan_as_dict_array)):
+            if i in self.plan_as_dict_array[x]['dependencies']:
+                yield x
+
+    def as_tree_string(self):
         def stringify_item_with_dependencies(i, visited_list, indent_level, accum):
             if i in visited_list:
                 return accum
@@ -157,3 +168,6 @@ class ExecutionPlan(object):
                 gantt_str += name_padded + prefix + actual + "\n"
 
             return gantt_str
+
+    def __str__(self):
+        return "\n".join([str(task) for task in self.plan_as_dict_array])
