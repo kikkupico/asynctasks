@@ -1,6 +1,6 @@
 import time
 import json
-
+import logging
 
 class ExecutionPlan(object):
 
@@ -38,7 +38,15 @@ class ExecutionPlan(object):
             return {"name": extract_name(lines[i]), "dependency": parents_stack[-1]}  # dependency will be the last parent
 
         parents_stack = [None]
-        lines = tree_string.split('\n')
+        lines = []
+        unclean_lines = tree_string.split('\n')
+
+        for line in unclean_lines:
+            if len(line.replace("\n", "").replace("\t", "")) > 0:
+                lines.append(line)
+            else:
+                logging.info("Skipped an empty line from tree string")
+
         self.plan_as_dict_array = list(map(lambda l: turn_line_to_dict(l, lines, parents_stack), range(0, len(lines))))
 
         return self
@@ -119,6 +127,8 @@ class ExecutionPlan(object):
         return json.dumps(self.plan_as_dict_array, indent=4, separators=(',', ': '))
 
     def as_gantt(self, resolution=100.0):
+        if len(self.plan_as_dict_array) == 0:
+            return "Empty plan"
         if self.is_incomplete():
             return "Not implemented for incomplete plans"
         else:

@@ -17,7 +17,6 @@ class Executor:
         self.executors = 0
 
     async def get_one_ready_task(self):
-        #print("func:get_one_ready_task")
         while self.execution_plan.is_incomplete():
             t = self.execution_plan.ready_tasks()
             if len(t) > 0:
