@@ -1,5 +1,6 @@
 import asyncio
 import sys
+import time
 
 
 class Executor:
@@ -15,6 +16,8 @@ class Executor:
         self.queue = asyncio.Queue(loop=self.loop, maxsize=max_concurrency)
         self.execution_coroutine = execution_coroutine
         self.executors = 0
+        self.stats = {"highest_concurrency": 0, "average_concurrency": 0, "start_time": None, "end_time": None}
+        self.stat_counter = 0
 
     async def get_one_ready_task(self):
         while self.execution_plan.is_incomplete():
@@ -28,6 +31,8 @@ class Executor:
 
     async def execute_task(self, task_id):
         self.executors += 1
+        if self.executors > self.stats['highest_concurrency']:
+            self.stats['highest_concurrency'] = self.executors
         self.execution_plan.mark_started(task_id)
         await self.execution_coroutine(loop=self.loop, task=self.execution_plan.plan_as_dict_array[task_id])
         self.execution_plan.mark_completed(task_id)
@@ -35,7 +40,11 @@ class Executor:
 
     async def execute(self):
         started_tasks = []
+        accumulated_concurrency = 0
         while self.execution_plan.is_incomplete():
+            accumulated_concurrency += self.executors
+            self.stat_counter += 1
+            self.stats['average_concurrency'] = accumulated_concurrency/self.stat_counter
             if self.executors < self.max_concurrency:
                 task_id = await self.get_one_ready_task()
                 if task_id is not None:  # check last comment in get_one_ready_task to understand this check
@@ -50,4 +59,6 @@ class Executor:
         #     await task
 
     def trigger_execution(self):
+        self.stats['start_time'] = time.time()
         self.loop.run_until_complete(asyncio.gather(self.execute()))
+        self.stats['end_time'] = time.time()
