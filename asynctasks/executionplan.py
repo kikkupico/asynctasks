@@ -138,7 +138,14 @@ class ExecutionPlan(object):
     def as_json(self):
         return json.dumps(self.plan_as_dict_array, indent=4, separators=(',', ': '))
 
-    def as_gantt(self, resolution=100.0):
+    def as_gantt(self, resolution=100.0, formatter_function=None):
+
+        def formatted(x):
+            if formatter_function is not None:
+                return formatter_function(x)
+            else:
+                return x['name']
+
         if len(self.plan_as_dict_array) == 0:
             return "Empty plan"
         if self.is_incomplete():
@@ -146,24 +153,24 @@ class ExecutionPlan(object):
         else:
             time_range_start = self.plan_as_dict_array[0]['start_time']
             time_range_end = self.plan_as_dict_array[0]['end_time']
-            biggest_name_size = len(self.plan_as_dict_array[0]['name'])
+            biggest_title_size = 0
 
             for task in self.plan_as_dict_array:
                 if task['start_time'] < time_range_start:
                     time_range_start = task['start_time']
                 if task['end_time'] > time_range_end:
                     time_range_end = task['end_time']
-                if len(task['name']) > biggest_name_size:
-                    biggest_name_size = len(task['name'])
+                if len(formatted(task)) > biggest_title_size:
+                    biggest_title_size = len(formatted(task))
 
             time_step = (time_range_end - time_range_start) / resolution
 
             def n_chars(c, n):
                 return "".join(list(map(lambda x: c, range(0, int(n)))))
 
-            gantt_str = "".ljust(biggest_name_size+1) + n_chars(".",(time_range_end-time_range_start)/time_step)+"\n"
+            gantt_str = "".ljust(biggest_title_size+1) + n_chars(".",(time_range_end-time_range_start)/time_step)+"\n"
             for task in self.plan_as_dict_array:
-                name_padded = task['name'].ljust(biggest_name_size+1)
+                name_padded = formatted(task).ljust(biggest_title_size+1)
                 prefix = n_chars(" ", (task['start_time']-time_range_start)/time_step)
                 actual = n_chars(".", (task['end_time']-task['start_time'])/time_step)
                 gantt_str += name_padded + prefix + actual + "\n"
