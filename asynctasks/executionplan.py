@@ -112,6 +112,9 @@ class ExecutionPlan(object):
             if i in self.plan_as_dict_array[x]['dependencies']:
                 yield x
 
+    def add_attribute(self, index, key, value):
+        self.plan_as_dict_array[index][key] = value
+
     def as_tree_string(self):
         def stringify_item_with_dependencies(i, visited_list, indent_level, accum):
             if i in visited_list:
