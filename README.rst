@@ -32,6 +32,8 @@ Sample Usage
    Executor(plan, 2, 0.01, print_task).trigger_execution()
    print("\nAFTER EXECUTION\n{}".format(plan.as_gantt()))
 
+Sample Output
+-------------
 
 .. code-block:: python
 
