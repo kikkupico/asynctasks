@@ -15,12 +15,12 @@ class TestExecutor(unittest.TestCase):
     def test_simple_execution(self):
         async def print_task(loop, task):
             print("Executing task {}".format(task))
-            await asyncio.sleep(0)
+            await asyncio.sleep(0.1)
 
         plan = ExecutionPlan().from_dict_array(self.tasks_dict_array)
         print("\nBEFORE EXECUTION\n{}".format(plan))
-        Executor(plan, 2, 1.0, print_task).trigger_execution()
-        print("\nAFTER EXECUTION\n{}".format(plan))
+        Executor(plan, 2, 0.01, print_task).trigger_execution()
+        print("\nAFTER EXECUTION\n{}".format(plan.as_gantt()))
         self.assertEqual(plan.is_incomplete(), False, "Plan has been marked complete")
         map(lambda x: self.assertIn(x, plan.completed_tasks(), "Task {} has been completed".format(x)), [x for x in range(0, len(plan.plan_as_dict_array))])
 
